@@ -99,10 +99,10 @@ public:
         rotationMatrixZ.matrix[3][3] = 1;
 
         rotationMatrixX.matrix[0][0] = 1;
-        rotationMatrixX.matrix[1][1] = -cosf(theta * 1.5f);
-        rotationMatrixX.matrix[1][2] = sinf(theta * 1.5f);
-        rotationMatrixX.matrix[2][1] = -sinf(theta * 1.5f);
-        rotationMatrixX.matrix[2][2] = -cosf(theta * 1.5f);
+        rotationMatrixX.matrix[1][1] = -cosf(theta * 0.5f);
+        rotationMatrixX.matrix[1][2] = sinf(theta * 0.5f);
+        rotationMatrixX.matrix[2][1] = -sinf(theta * 0.5f);
+        rotationMatrixX.matrix[2][2] = -cosf(theta * 0.5f);
         rotationMatrixX.matrix[3][3] = 1;
 
         for (auto triangle : meshCube.triangles) {
@@ -117,12 +117,35 @@ public:
             
             for (int i = 0; i < 3; i++) {
                 triangleTranslated.points[i].z += 3.0f;
-                MultiplyVectorByMatrix(triangleTranslated.points[i], triangleProjected.points[i], projectionMatrix);
             }
-            ScaleTriangleToScreen(triangleProjected);
 
-            DrawTriangle(triangleProjected.points[0].x, triangleProjected.points[0].y, triangleProjected.points[1].x,
-                triangleProjected.points[1].y, triangleProjected.points[2].x, triangleProjected.points[2].y, olc::BLUE);
+            Vector3d normal, line1, line2;
+            line1.x = triangleTranslated.points[1].x - triangleTranslated.points[0].x;
+            line1.y = triangleTranslated.points[1].y - triangleTranslated.points[0].y;
+            line1.z = triangleTranslated.points[1].z - triangleTranslated.points[0].z;
+
+            line2.x = triangleTranslated.points[2].x - triangleTranslated.points[0].x;
+            line2.y = triangleTranslated.points[2].y - triangleTranslated.points[0].y;
+            line2.z = triangleTranslated.points[2].z - triangleTranslated.points[0].z;
+
+            normal.x = line1.y * line2.z - line1.z * line2.y;
+            normal.y = line1.z * line2.x - line1.x * line2.z;
+            normal.z = line1.x * line2.y - line1.y * line2.x;
+
+            float length = sqrtf(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+            normal.x /= length;
+            normal.y /= length;
+            normal.z /= length;
+
+            if (normal.z < 0) {
+                for (int i = 0; i < 3; i++) {
+                    MultiplyVectorByMatrix(triangleTranslated.points[i], triangleProjected.points[i], projectionMatrix);
+                }
+                ScaleTriangleToScreen(triangleProjected);
+
+                DrawTriangle(triangleProjected.points[0].x, triangleProjected.points[0].y, triangleProjected.points[1].x,
+                    triangleProjected.points[1].y, triangleProjected.points[2].x, triangleProjected.points[2].y, olc::MAGENTA);
+            }
         }
 
         return true;
