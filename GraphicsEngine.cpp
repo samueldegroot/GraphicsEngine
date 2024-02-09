@@ -1,8 +1,10 @@
 #define OLC_PGE_APPLICATION
+#define _USE_MATH_DEFINES
 #include "olcPixelGameEngine.h"
 #include <fstream>
 #include <strstream>
 #include <algorithm>
+#include <math.h>
 
 struct Vector3d { //struct defining vector in 3d space, determined by xyz coords
     float x, y, z;
@@ -104,6 +106,52 @@ private:
         return shadedColor;
     }
 
+    //rotation matrices from https://en.wikipedia.org/wiki/Rotation_matrix#:~:text=in%20its%20center.-,Basic%203D%20rotations,-%5Bedit%5D
+    void RotateObjectX(Triangle& input_triangle, Triangle& output_triangle, float theta) {
+        Matrix4x4 rotationMatrixX;
+
+        rotationMatrixX.matrix[0][0] = 1;
+        rotationMatrixX.matrix[1][1] = -cosf(theta * 0.5f);
+        rotationMatrixX.matrix[1][2] = sinf(theta * 0.5f);
+        rotationMatrixX.matrix[2][1] = -sinf(theta * 0.5f);
+        rotationMatrixX.matrix[2][2] = -cosf(theta * 0.5f);
+        rotationMatrixX.matrix[3][3] = 1;
+
+        for (int i = 0; i < 3; i++) {
+            MultiplyVectorByMatrix(input_triangle.points[i], output_triangle.points[i], rotationMatrixX);
+        }
+    }
+
+    void RotateObjectY(Triangle& input_triangle, Triangle& output_triangle, float theta) {
+        Matrix4x4 rotationMatrixY;
+
+        rotationMatrixY.matrix[0][0] = cosf(theta);
+        rotationMatrixY.matrix[0][2] = -sinf(theta);
+        rotationMatrixY.matrix[1][1] = 1;
+        rotationMatrixY.matrix[2][0] = sinf(theta);
+        rotationMatrixY.matrix[2][2] = cosf(theta);
+        rotationMatrixY.matrix[3][3] = 1;
+
+        for (int i = 0; i < 3; i++) {
+            MultiplyVectorByMatrix(input_triangle.points[i], output_triangle.points[i], rotationMatrixY);
+        }
+    }
+
+    void RotateObjectZ(Triangle& input_triangle, Triangle& output_triangle, float theta) {
+        Matrix4x4 rotationMatrixZ;
+
+        rotationMatrixZ.matrix[0][0] = cosf(theta);
+        rotationMatrixZ.matrix[0][1] = sinf(theta);
+        rotationMatrixZ.matrix[1][0] = -sinf(theta);
+        rotationMatrixZ.matrix[1][1] = cosf(theta);
+        rotationMatrixZ.matrix[2][2] = 1;
+        rotationMatrixZ.matrix[3][3] = 1;
+
+        for (int i = 0; i < 3; i++) {
+            MultiplyVectorByMatrix(input_triangle.points[i], output_triangle.points[i], rotationMatrixZ);
+        }
+    }
+
 public:
     GrahpicsEngine() {
         sAppName = "Cube Demo";
@@ -133,7 +181,7 @@ public:
         float zFar = 1000.0f;
         float fieldOfView = 90.0f;
         float aspectRatio = (float)ScreenHeight() / (float)ScreenWidth();
-        float fovRadians = 1.0f / tanf(fieldOfView * 0.5f / 180.0f * 3.1415926535897f);
+        float fovRadians = 1.0f / tanf(fieldOfView * 0.5f / 180.0f * M_PI);
 
         projectionMatrix.matrix[0][0] = aspectRatio * fovRadians;
         projectionMatrix.matrix[1][1] = fovRadians;
@@ -148,35 +196,20 @@ public:
     bool OnUserUpdate(float elapsedTime) override {
         FillRect(0, 0, ScreenWidth(), ScreenHeight(), olc::BLACK);
 
-        Matrix4x4 rotationMatrixZ, rotationMatrixX;
         theta += 1.0f * elapsedTime;
 
-        rotationMatrixZ.matrix[0][0] = cosf(theta);
-        rotationMatrixZ.matrix[0][1] = sinf(theta);
-        rotationMatrixZ.matrix[1][0] = -sinf(theta);
-        rotationMatrixZ.matrix[1][1] = cosf(theta);
-        rotationMatrixZ.matrix[2][2] = 1;
-        rotationMatrixZ.matrix[3][3] = 1;
-
-        rotationMatrixX.matrix[0][0] = 1;
-        rotationMatrixX.matrix[1][1] = -cosf(theta * 0.5f);
-        rotationMatrixX.matrix[1][2] = sinf(theta * 0.5f);
-        rotationMatrixX.matrix[2][1] = -sinf(theta * 0.5f);
-        rotationMatrixX.matrix[2][2] = -cosf(theta * 0.5f);
-        rotationMatrixX.matrix[3][3] = 1;
-
         for (auto triangle : meshCube.triangles) {
-            Triangle triangleProjected, triangleTranslated, triangleRotatedZ, triangleRotatedZX;
+            Triangle triangleProjected, triangleTranslated, triangleRotatedZ, triangleRotatedX, triangleRotatedY;
 
-            for (int i = 0; i < 3; i++) {
-                MultiplyVectorByMatrix(triangle.points[i], triangleRotatedZ.points[i], rotationMatrixZ);
-                MultiplyVectorByMatrix(triangleRotatedZ.points[i], triangleRotatedZX.points[i], rotationMatrixX);
-            }
+            RotateObjectX(triangle, triangleRotatedX, 0);
+            RotateObjectY(triangleRotatedX, triangleRotatedY, theta);
+            RotateObjectZ(triangleRotatedY, triangleRotatedZ, 0);
 
-            triangleTranslated = triangleRotatedZX;
+            triangleTranslated = triangleRotatedZ;
             
             for (int i = 0; i < 3; i++) {
-                triangleTranslated.points[i].z += 3.0f;
+                triangleTranslated.points[i].z += 2.0f;
+                triangleTranslated.points[i].y += 1.0f;
             }
 
             Vector3d normal, line1, line2;
