@@ -1,5 +1,8 @@
 #define OLC_PGE_APPLICATION
 #include "olcPixelGameEngine.h"
+#include <fstream>
+#include <strstream>
+#include <algorithm>
 
 struct Vector3d { //struct defining vector in 3d space, determined by xyz coords
     float x, y, z;
@@ -14,6 +17,43 @@ struct Triangle { //struct defining a triangle, which is made of 3 points
 
 struct Mesh { //struct defining mesh, which is collection of triangles
     std::vector<Triangle> triangles;
+
+    bool LoadObjectFromFile(std::string sFilename)
+    {
+        std::ifstream f(sFilename);
+        if (!f.is_open())
+            return false;
+
+        // Local cache of verts
+        std::vector<Vector3d> verts;
+
+        while (!f.eof())
+        {
+            char line[128];
+            f.getline(line, 128);
+
+            std::strstream s;
+            s << line;
+
+            char junk;
+
+            if (line[0] == 'v')
+            {
+                Vector3d v;
+                s >> junk >> v.x >> v.y >> v.z;
+                verts.push_back(v);
+            }
+
+            if (line[0] == 'f')
+            {
+                int f[3];
+                s >> junk >> f[0] >> f[1] >> f[2];
+                triangles.push_back({ verts[f[0] - 1], verts[f[1] - 1], verts[f[2] - 1] });
+            }
+        }
+
+        return true;
+    }
 };
 
 struct Matrix4x4 {
@@ -70,7 +110,7 @@ public:
     }
 
     bool OnUserCreate() override {
-        meshCube.triangles = {
+        /*meshCube.triangles = {
         { 0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 0.0f },
         { 0.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 0.0f, 0.0f },                                                    
         { 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f },
@@ -83,7 +123,11 @@ public:
         { 0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f },                                                  
         { 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f },
         { 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f }
-        };
+        };*/
+
+        if (!meshCube.LoadObjectFromFile("peter_griffin.obj")) {
+            return false;
+        }
 
         float zNear = 0.1f;
         float zFar = 1000.0f;
