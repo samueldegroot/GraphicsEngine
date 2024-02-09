@@ -8,6 +8,7 @@ struct Vector3d { //struct defining vector in 3d space, determined by xyz coords
 
 struct Triangle { //struct defining a triangle, which is made of 3 points
     Vector3d points[3];
+    olc::Pixel color;
     //triangle(vector3d a, vector3d b, vector3d c) : points{ a, b, c } { }
 };
 
@@ -48,6 +49,19 @@ private:
             triangle.points[i].x *= 0.5f * (float)ScreenWidth();
             triangle.points[i].y *= 0.5f * (float)ScreenHeight();
         }
+    }
+
+    void NormalizeVector(Vector3d& input_vector) {
+        float length = sqrtf(input_vector.x * input_vector.x + input_vector.y * input_vector.y + input_vector.z * input_vector.z);
+        input_vector.x /= length;
+        input_vector.y /= length;
+        input_vector.z /= length;
+    }
+
+    olc::Pixel GetShadeFromLumosity(float lumosity)
+    {
+        olc::Pixel shadedColor = olc::PixelF(lumosity, lumosity, lumosity);
+        return shadedColor;
     }
 
 public:
@@ -134,22 +148,27 @@ public:
             normal.y = line1.z * line2.x - line1.x * line2.z;
             normal.z = line1.x * line2.y - line1.y * line2.x;
 
-            float length = sqrtf(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
-            normal.x /= length;
-            normal.y /= length;
-            normal.z /= length;
+            NormalizeVector(normal);
 
             if (normal.x * (triangleTranslated.points[0].x - camera.x) +
                 normal.y * (triangleTranslated.points[0].y - camera.y) +
                 normal.z * (triangleTranslated.points[0].z - camera.z) < 0)
             {
+                Vector3d directionalLight = { 0, 0, -1 };
+                NormalizeVector(directionalLight);
+
+                float dotProduct = normal.x * directionalLight.x + normal.y * directionalLight.y + normal.z * directionalLight.z;
+
+                triangleTranslated.color = GetShadeFromLumosity(dotProduct);
+
                 for (int i = 0; i < 3; i++) {
                     MultiplyVectorByMatrix(triangleTranslated.points[i], triangleProjected.points[i], projectionMatrix);
                 }
+                triangleProjected.color = triangleTranslated.color;
                 ScaleTriangleToScreen(triangleProjected);
 
-                DrawTriangle(triangleProjected.points[0].x, triangleProjected.points[0].y, triangleProjected.points[1].x,
-                    triangleProjected.points[1].y, triangleProjected.points[2].x, triangleProjected.points[2].y, olc::MAGENTA);
+                FillTriangle(triangleProjected.points[0].x, triangleProjected.points[0].y, triangleProjected.points[1].x,
+                    triangleProjected.points[1].y, triangleProjected.points[2].x, triangleProjected.points[2].y, triangleProjected.color);
             }
         }
 
