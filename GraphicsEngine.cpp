@@ -26,6 +26,8 @@ private:
     Matrix4x4 projectionMatrix;
     float theta = 0.0f;
 
+    Vector3d camera;
+
     void MultiplyVectorByMatrix(Vector3d& input_vector, Vector3d& output_vector, Matrix4x4& matrix) {
         output_vector.x = input_vector.x * matrix.matrix[0][0] + input_vector.y * matrix.matrix[1][0] + input_vector.z * matrix.matrix[2][0] + matrix.matrix[3][0];
         output_vector.y = input_vector.x * matrix.matrix[0][1] + input_vector.y * matrix.matrix[1][1] + input_vector.z * matrix.matrix[2][1] + matrix.matrix[3][1];
@@ -137,7 +139,10 @@ public:
             normal.y /= length;
             normal.z /= length;
 
-            if (normal.z < 0) {
+            if (normal.x * (triangleTranslated.points[0].x - camera.x) +
+                normal.y * (triangleTranslated.points[0].y - camera.y) +
+                normal.z * (triangleTranslated.points[0].z - camera.z) < 0)
+            {
                 for (int i = 0; i < 3; i++) {
                     MultiplyVectorByMatrix(triangleTranslated.points[i], triangleProjected.points[i], projectionMatrix);
                 }
