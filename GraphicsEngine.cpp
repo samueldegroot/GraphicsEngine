@@ -11,7 +11,7 @@ struct Vector3d { //struct defining vector in 3d space, determined by xyz coords
     //vector3d(float x, float y, float z) : x(x), y(y), z(z) { }
 };
 
-struct Triangle { //struct defining a triangle, which is made of 3 points
+struct Triangle { //struct defining a triangle, which is made of 3 vertices
     Vector3d points[3];
     olc::Pixel color;
     //triangle(vector3d a, vector3d b, vector3d c) : points{ a, b, c } { }
@@ -111,10 +111,10 @@ private:
         Matrix4x4 rotationMatrixX;
 
         rotationMatrixX.matrix[0][0] = 1;
-        rotationMatrixX.matrix[1][1] = -cosf(theta * 0.5f);
-        rotationMatrixX.matrix[1][2] = sinf(theta * 0.5f);
-        rotationMatrixX.matrix[2][1] = -sinf(theta * 0.5f);
-        rotationMatrixX.matrix[2][2] = -cosf(theta * 0.5f);
+        rotationMatrixX.matrix[1][1] = -cosf(theta);
+        rotationMatrixX.matrix[1][2] = sinf(theta);
+        rotationMatrixX.matrix[2][1] = -sinf(theta);
+        rotationMatrixX.matrix[2][2] = -cosf(theta);
         rotationMatrixX.matrix[3][3] = 1;
 
         for (int i = 0; i < 3; i++) {
@@ -197,6 +197,7 @@ public:
         FillRect(0, 0, ScreenWidth(), ScreenHeight(), olc::BLACK);
 
         theta += 1.0f * elapsedTime;
+        std::vector<Triangle> trianglesToDraw;
 
         for (auto triangle : meshCube.triangles) {
             Triangle triangleProjected, triangleTranslated, triangleRotatedZ, triangleRotatedX, triangleRotatedY;
@@ -244,9 +245,20 @@ public:
                 triangleProjected.color = triangleTranslated.color;
                 ScaleTriangleToScreen(triangleProjected);
 
-                FillTriangle(triangleProjected.points[0].x, triangleProjected.points[0].y, triangleProjected.points[1].x,
-                    triangleProjected.points[1].y, triangleProjected.points[2].x, triangleProjected.points[2].y, triangleProjected.color);
+                trianglesToDraw.push_back(triangleProjected);
             }
+        }
+
+        sort(trianglesToDraw.begin(), trianglesToDraw.end(), [](Triangle& t1, Triangle& t2)
+            {
+                float t1Midpoint = t1.points[0].z + t1.points[1].z + t1.points[2].z / 3;
+                float t2Midpoint = t2.points[0].z + t2.points[1].z + t2.points[2].z / 3;
+                return t1Midpoint > t2Midpoint;
+            });
+
+        for (auto& triangleProjected : trianglesToDraw) {
+            FillTriangle(triangleProjected.points[0].x, triangleProjected.points[0].y, triangleProjected.points[1].x,
+                triangleProjected.points[1].y, triangleProjected.points[2].x, triangleProjected.points[2].y, triangleProjected.color);
         }
 
         return true;
